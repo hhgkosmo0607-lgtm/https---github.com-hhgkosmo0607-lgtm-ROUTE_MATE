@@ -55,7 +55,12 @@
       "Bash(.venv/bin/python -c \"import requests; print\\(requests.__version__\\)\")",
       "Bash(.venv/bin/python /private/tmp/claude-501/-Users-oddnoise-01vscode-route-mate/cfdd6449-9325-4796-b725-43631624e489/scratchpad/browser_check_osm.py)",
       "Bash(.venv/bin/python -)",
-      "Bash(.venv/bin/python -m pytest tests/test_review_fixes.py -q)"
+      "Bash(.venv/bin/python -m pytest tests/test_review_fixes.py -q)",
+      "Bash(.venv/bin/python /private/tmp/claude-501/-Users-oddnoise-01vscode-route-mate/cfdd6449-9325-4796-b725-43631624e489/scratchpad/browser_check_fixes.py)",
+      "Bash(.venv/bin/python -c \"from ortools.constraint_solver import pywrapcp, routing_enums_pb2; import ortools; print\\('ortools', ortools.__version__ if hasattr\\(ortools,'__version__'\\) else 'OK'\\)\")",
+      "Bash(.venv/bin/python -m pytest tests/test_route_optimizer.py -q)",
+      "Bash(.venv/bin/python -c \"import docx; print\\('python-docx OK'\\)\")",
+      "Bash(textutil -convert txt \"RouteMate_설계서 .docx\" -output /private/tmp/claude-501/-Users-oddnoise-01vscode-route-mate/cfdd6449-9325-4796-b725-43631624e489/scratchpad/검증.txt)"
     ]
   }
 }

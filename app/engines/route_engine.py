@@ -137,6 +137,62 @@ def _two_opt(order, time_min):
     return order
 
 
+def _assemble_days(day_routes, places, dist_km, time_min, day_start_min):
+    """확정된 Day별 방문 순서 → 시각·이동정보가 채워진 DayPlan 목록."""
+    days = []
+    total_move_min = 0
+    total_move_km = 0.0
+
+    for day_no, route in enumerate(day_routes, start=1):
+        items = []
+        cur_min = day_start_min
+        prev = None
+        for pos in route:
+            place = places[pos]
+            if prev is None:
+                move_min, move_km = None, None
+                arrival = cur_min
+            else:
+                move_min = round(time_min[prev][pos])
+                move_km = round(dist_km[prev][pos], 2)
+                arrival = cur_min + move_min
+                total_move_min += move_min
+                total_move_km += move_km
+            items.append(
+                ScheduleItem(
+                    place_id=place.place_id,
+                    order_no=len(items) + 1,
+                    start_min=arrival,
+                    stay_min=place.stay_min,
+                    move_min=move_min,
+                    move_km=move_km,
+                )
+            )
+            cur_min = arrival + place.stay_min
+            prev = pos
+        days.append(DayPlan(day_no=day_no, items=items))
+
+    return days, total_move_min, round(total_move_km, 2)
+
+
+def _solve_with_optimizer(places, dist_km, time_min, total_days, day_start, day_end):
+    """OR-Tools VRPTW 솔버로 Day 배치+순서를 동시 최적화. 실패 시 None."""
+    from . import route_optimizer
+
+    day_start_min = day_start.hour * 60 + day_start.minute
+    day_end_min = day_end.hour * 60 + day_end.minute
+
+    solved = route_optimizer.solve(places, time_min, dist_km, total_days, day_start_min, day_end_min)
+    if solved is None:
+        return None
+
+    day_routes, unassigned = solved
+    days, total_move_min, total_move_km = _assemble_days(day_routes, places, dist_km, time_min, day_start_min)
+    return RouteResult(
+        days=days, unassigned=unassigned, total_move_min=total_move_min, total_move_km=total_move_km
+    )
+
+
 def _assign_days(order, places, dist_km, time_min, total_days, day_start, day_end):
     """5~6단계: 일일 활동시간 한도 내에서 Day별로 순차 배치하고 시각을 부여한다 (9.1.4절)."""
     day_start_min = day_start.hour * 60 + day_start.minute
@@ -236,6 +292,17 @@ def build_route(places, transport, total_days, day_start=time(9, 0), day_end=tim
         )
 
     dist_km, time_min, used_fallback = _resolve_distance_matrix(places, transport, adapter)
+
+    # 1순위: OR-Tools VRPTW 솔버 (Day 배치·순서 동시 최적화, 실서비스 수준)
+    try:
+        result = _solve_with_optimizer(places, dist_km, time_min, total_days, day_start, day_end)
+        if result is not None:
+            result.used_fallback = used_fallback
+            return result
+    except Exception:
+        logger.warning("route optimizer failed, falling back to NN+2-opt heuristic", exc_info=True)
+
+    # 폴백: NN+2-opt 휴리스틱 (9.1.3절)
     order = _nearest_neighbor(len(places), time_min, start=0)
     order = _two_opt(order, time_min)
     result = _assign_days(order, places, dist_km, time_min, total_days, day_start, day_end)
