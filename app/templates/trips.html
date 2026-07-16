@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}내 여행 — RouteMate{% endblock %}
+{% block content %}
+<div class="row between">
+  <h1>내 여행</h1>
+  <a class="btn" href="{{ url_for('views.trip_new') }}">+ 새 여행</a>
+</div>
+<div id="trips-list" class="stack"><div class="spinner"></div></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/trips.js') }}"></script>
+{% endblock %}

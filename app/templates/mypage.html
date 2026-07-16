@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}마이페이지 — RouteMate{% endblock %}
+{% block content %}
+<div class="stack" style="max-width:640px; margin:0 auto;">
+  <div id="welcome-banner" class="card" style="display:none; background:#eef2ff;">
+    가입을 환영합니다! 여행 프로필을 채워두면 이후 AI 추천과 경로 계산에 바로 반영됩니다. (건너뛰어도 기본값으로 동작합니다)
+  </div>
+
+  <div class="card">
+    <h2>계정 정보</h2>
+    <form id="account-form" class="stack">
+      <div class="field">
+        <label for="nickname">닉네임</label>
+        <input type="text" id="nickname" maxlength="30">
+      </div>
+      <div class="field">
+        <label>이메일</label>
+        <input type="text" id="email" disabled>
+      </div>
+      <div class="field">
+        <label for="password">새 비밀번호 (변경 시에만 입력)</label>
+        <input type="password" id="password" minlength="8" placeholder="8자 이상, 영문+숫자">
+      </div>
+      <div class="row">
+        <button type="submit">저장</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>여행 프로필</h2>
+    <form id="profile-form" class="stack">
+      <div class="field">
+        <label for="travel_style">여행 스타일</label>
+        <select id="travel_style">
+          <option value="BALANCED">균형형</option>
+          <option value="RELAX">휴양</option>
+          <option value="SIGHTSEEING">관광</option>
+          <option value="FOOD">미식</option>
+          <option value="ACTIVITY">액티비티</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="transport">이동수단</label>
+        <select id="transport">
+          <option value="WALK">도보</option>
+          <option value="TRANSIT">대중교통</option>
+          <option value="CAR">자차</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="food_pref">선호 음식 (쉼표로 구분)</label>
+        <input type="text" id="food_pref" placeholder="한식, 해산물">
+      </div>
+      <div class="field">
+        <label for="allergy">알레르기 (쉼표로 구분)</label>
+        <input type="text" id="allergy" placeholder="갑각류, 땅콩">
+      </div>
+      <div class="field">
+        <label for="walk_level">걷기 선호도: <span id="walk_level_val">2</span></label>
+        <input type="range" id="walk_level" min="1" max="3" value="2">
+      </div>
+      <div class="field">
+        <label for="budget_level">예산 수준: <span id="budget_level_val">3</span></label>
+        <input type="range" id="budget_level" min="1" max="5" value="3">
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="interest_cafe">관심사 — 카페: <span id="interest_cafe_val">0.5</span></label>
+          <input type="range" id="interest_cafe" min="0" max="1" step="0.1" value="0.5">
+        </div>
+        <div class="field">
+          <label for="interest_photo">관심사 — 사진: <span id="interest_photo_val">0.5</span></label>
+          <input type="range" id="interest_photo" min="0" max="1" step="0.1" value="0.5">
+        </div>
+        <div class="field">
+          <label for="interest_shopping">관심사 — 쇼핑: <span id="interest_shopping_val">0.5</span></label>
+          <input type="range" id="interest_shopping" min="0" max="1" step="0.1" value="0.5">
+        </div>
+        <div class="field">
+          <label for="interest_rest">관심사 — 휴식: <span id="interest_rest_val">0.5</span></label>
+          <input type="range" id="interest_rest" min="0" max="1" step="0.1" value="0.5">
+        </div>
+      </div>
+      <div class="row">
+        <button type="submit">프로필 저장</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>위험 영역</h2>
+    <div class="row">
+      <button type="button" class="secondary" id="logout-btn-2">로그아웃</button>
+      <button type="button" class="danger" id="delete-account-btn">회원 탈퇴</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mypage.js') }}"></script>
+{% endblock %}

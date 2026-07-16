@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}체크리스트 — RouteMate{% endblock %}
+{% block content %}
+<h1>체크리스트</h1>
+{% include "_trip_nav.html" %}
+
+<div class="card">
+  <form id="add-item-form" class="row">
+    <input type="text" id="item-input" placeholder="준비물 입력" required style="flex:1;">
+    <button type="submit">추가</button>
+  </form>
+</div>
+<div id="checklist-items" class="stack" style="margin-top:16px;"><div class="spinner"></div></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">window.TRIP_ID = {{ trip_id }};</script>
+<script src="{{ url_for('static', filename='js/trip_checklist.js') }}"></script>
+{% endblock %}

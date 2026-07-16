@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}예산 관리 — RouteMate{% endblock %}
+{% block content %}
+<h1>예산 관리</h1>
+{% include "_trip_nav.html" %}
+
+<div class="grid-2">
+  <div class="card">
+    <h2>지출/예산 기록</h2>
+    <form id="expense-form" class="stack">
+      <div class="row">
+        <div class="field" style="flex:1;">
+          <label for="category">카테고리</label>
+          <select id="category">
+            <option value="TRANSPORT">교통</option>
+            <option value="STAY">숙박</option>
+            <option value="FOOD">식비</option>
+            <option value="TICKET">입장료</option>
+            <option value="ETC">기타</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="item_type">유형</label>
+          <select id="item_type">
+            <option value="BUDGET">예산 설정</option>
+            <option value="SPEND">지출 기록</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="amount">금액(원)</label>
+        <input type="number" id="amount" min="0" required>
+      </div>
+      <div class="field">
+        <label for="memo">메모</label>
+        <input type="text" id="memo" maxlength="200">
+      </div>
+      <button type="submit">기록 추가</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>요약</h2>
+    <div id="summary-area"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h2>내역</h2>
+  <div id="expense-list"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">window.TRIP_ID = {{ trip_id }};</script>
+<script src="{{ url_for('static', filename='js/trip_budget.js') }}"></script>
+{% endblock %}

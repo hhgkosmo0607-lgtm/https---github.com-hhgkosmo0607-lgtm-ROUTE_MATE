@@ -1,0 +1,8 @@
+<div class="tabs">
+  <a href="{{ url_for('views.trip_plan', trip_id=trip_id) }}" class="{{ 'active' if active == 'plan' }}">여행 설계</a>
+  <a href="{{ url_for('views.trip_map', trip_id=trip_id) }}" class="{{ 'active' if active == 'map' }}">지도</a>
+  <a href="{{ url_for('views.trip_recommend', trip_id=trip_id) }}" class="{{ 'active' if active == 'recommend' }}">AI 추천</a>
+  <a href="{{ url_for('views.trip_planb', trip_id=trip_id) }}" class="{{ 'active' if active == 'planb' }}">Plan B</a>
+  <a href="{{ url_for('views.trip_checklist', trip_id=trip_id) }}" class="{{ 'active' if active == 'checklist' }}">체크리스트</a>
+  <a href="{{ url_for('views.trip_budget', trip_id=trip_id) }}" class="{{ 'active' if active == 'budget' }}">예산</a>
+</div>

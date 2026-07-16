@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}로그인 — RouteMate{% endblock %}
+{% block content %}
+<div class="card" style="max-width:380px; margin:40px auto;">
+  <h1>로그인</h1>
+  <form id="login-form" class="stack">
+    <div class="field">
+      <label for="email">이메일</label>
+      <input type="email" id="email" required autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" required autocomplete="current-password">
+    </div>
+    <div id="login-error" class="error-text" hidden></div>
+    <button type="submit">로그인</button>
+  </form>
+  <p class="muted" style="margin-top:16px;">
+    계정이 없으신가요? <a href="{{ url_for('views.signup_page') }}">회원가입</a>
+  </p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+  const rawNext = {{ (next or '') | tojson }};
+  // 오픈 리다이렉트 방지: 사이트 내부 경로("/foo")만 허용, "//evil.com"·절대 URL 차단
+  const nextUrl = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("login-error");
+    errorEl.hidden = true;
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+    try {
+      await api.post("/api/auth/login", {
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+      });
+      window.location.href = nextUrl || "{{ url_for('views.trips_page') }}";
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+{% endblock %}

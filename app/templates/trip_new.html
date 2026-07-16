@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}여행 생성 — RouteMate{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px; margin:0 auto;">
+  <h1>새 여행 만들기</h1>
+  <form id="trip-form" class="stack">
+    <div class="field">
+      <label for="title">여행명</label>
+      <input type="text" id="title" required maxlength="100" placeholder="제주 힐링 여행">
+    </div>
+    <div class="field">
+      <label for="region">지역</label>
+      <input type="text" id="region" required maxlength="50" placeholder="제주">
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1;">
+        <label for="start_date">시작일</label>
+        <input type="date" id="start_date" required>
+      </div>
+      <div class="field" style="flex:1;">
+        <label for="end_date">종료일</label>
+        <input type="date" id="end_date" required>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1;">
+        <label for="day_start">일일 활동 시작</label>
+        <input type="time" id="day_start" value="09:00">
+      </div>
+      <div class="field" style="flex:1;">
+        <label for="day_end">일일 활동 종료</label>
+        <input type="time" id="day_end" value="21:00">
+      </div>
+    </div>
+    <div class="field">
+      <label>시작 방식</label>
+      <div class="row">
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem;">
+          <input type="radio" name="start_mode" value="plan" checked style="width:auto;"> 직접 설계
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem;">
+          <input type="radio" name="start_mode" value="recommend" style="width:auto;"> AI 추천으로 시작
+        </label>
+      </div>
+    </div>
+    <div id="trip-error" class="error-text" hidden></div>
+    <button type="submit">여행 생성</button>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+  document.getElementById("trip-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("trip-error");
+    errorEl.hidden = true;
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
+    if (endDate < startDate) {
+      errorEl.textContent = "종료일은 시작일보다 빠를 수 없습니다.";
+      errorEl.hidden = false;
+      return;
+    }
+    try {
+      const trip = await api.post("/api/trips", {
+        title: document.getElementById("title").value,
+        region: document.getElementById("region").value,
+        start_date: startDate,
+        end_date: endDate,
+        day_start: document.getElementById("day_start").value,
+        day_end: document.getElementById("day_end").value,
+      });
+      const mode = document.querySelector('input[name="start_mode"]:checked').value;
+      window.location.href = mode === "recommend" ? `/trips/${trip.trip_id}/recommend` : `/trips/${trip.trip_id}/plan`;
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    }
+  });
+</script>
+{% endblock %}

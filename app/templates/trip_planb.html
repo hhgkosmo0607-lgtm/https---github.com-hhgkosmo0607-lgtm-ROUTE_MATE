@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Plan B — RouteMate{% endblock %}
+{% block content %}
+<h1>Plan B 관리</h1>
+{% include "_trip_nav.html" %}
+
+<div class="card">
+  <div class="field">
+    <label for="schedule-select">대상 일정</label>
+    <select id="schedule-select"></select>
+  </div>
+  <div id="revert-area"></div>
+</div>
+
+<div class="grid-2" style="margin-top:16px;">
+  <div class="card">
+    <h2>등록된 대체 옵션</h2>
+    <div id="planb-list" class="stack"></div>
+  </div>
+  <div class="card">
+    <h2>대체 장소 등록</h2>
+    <form id="planb-form" class="stack">
+      <div class="field">
+        <label for="trigger_type">발동 조건</label>
+        <select id="trigger_type">
+          <option value="MANUAL">기타(수동)</option>
+          <option value="WAIT">웨이팅</option>
+          <option value="CLOSED">휴무</option>
+          <option value="RAIN">우천</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="alt_name">대체 장소명</label>
+        <input type="text" id="alt_name" required maxlength="100">
+      </div>
+      <div class="field">
+        <label for="alt_category">카테고리</label>
+        <select id="alt_category">
+          <option value="ATTRACTION">관광지</option>
+          <option value="RESTAURANT">음식점</option>
+          <option value="CAFE">카페</option>
+          <option value="SHOPPING">쇼핑</option>
+          <option value="ETC">기타</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1;">
+          <label for="alt_lat">위도</label>
+          <input type="number" id="alt_lat" step="0.000001" required>
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="alt_lng">경도</label>
+          <input type="number" id="alt_lng" step="0.000001" required>
+        </div>
+      </div>
+      <button type="submit">등록</button>
+    </form>
+  </div>
+</div>
+
+<div id="preview-area" style="margin-top:16px;"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+  window.TRIP_ID = {{ trip_id }};
+  window.PRESELECT_SCHEDULE_ID = {{ request.args.get("schedule_id", "") | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/trip_planb.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}여행 설계 — RouteMate{% endblock %}
+{% block content %}
+<div id="trip-title" class="row between">
+  <h1>여행 설계</h1>
+</div>
+{% include "_trip_nav.html" %}
+
+<div class="row" style="margin-bottom:16px;">
+  <label style="margin:0;">이동수단</label>
+  <select id="transport" style="width:auto;">
+    <option value="WALK">도보</option>
+    <option value="TRANSIT" selected>대중교통</option>
+    <option value="CAR">자차</option>
+  </select>
+  <button type="button" id="generate-route-btn">경로 자동 생성</button>
+  <span id="route-status" class="muted"></span>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <h2>장소 추가</h2>
+      <div class="field">
+        <label for="place_search">장소 검색</label>
+        <input type="text" id="place_search" placeholder="장소명 또는 주소 (예: 경복궁)" autocomplete="off">
+      </div>
+      <div id="search-results" class="stack" style="margin-bottom:10px;"></div>
+
+      <details id="manual-entry">
+        <summary class="muted" style="cursor:pointer;">검색 결과가 없나요? 직접 입력</summary>
+        <form id="add-place-form" class="stack" style="margin-top:10px;">
+          <div class="field">
+            <label for="place_name">장소명</label>
+            <input type="text" id="place_name" required maxlength="100">
+          </div>
+          <div class="field">
+            <label for="place_category">카테고리</label>
+            <select id="place_category">
+              <option value="ATTRACTION">관광지</option>
+              <option value="RESTAURANT">음식점</option>
+              <option value="CAFE">카페</option>
+              <option value="SHOPPING">쇼핑</option>
+              <option value="ETC">기타</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="field" style="flex:1;">
+              <label for="place_lat">위도(lat)</label>
+              <input type="number" id="place_lat" step="0.000001" required>
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="place_lng">경도(lng)</label>
+              <input type="number" id="place_lng" step="0.000001" required>
+            </div>
+          </div>
+          <button type="submit">추가</button>
+        </form>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>미배치 보관함</h2>
+      <div id="unassigned-list" class="stack"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>일정</h2>
+    <div id="day-tabs" class="tabs"></div>
+    <div id="day-content" class="stack"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">window.TRIP_ID = {{ trip_id }};</script>
+<script src="{{ url_for('static', filename='js/trip_plan.js') }}"></script>
+{% endblock %}

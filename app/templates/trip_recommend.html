@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}AI 추천 — RouteMate{% endblock %}
+{% block content %}
+<h1>AI 추천</h1>
+{% include "_trip_nav.html" %}
+
+<div class="card">
+  <form id="rec-form" class="row">
+    <div class="field" style="flex:1; min-width:140px;">
+      <label for="rec_type">추천 유형</label>
+      <select id="rec_type">
+        <option value="ATTRACTION">관광지</option>
+        <option value="FOOD">맛집</option>
+        <option value="CAFE">카페</option>
+        <option value="GAP_FILL">빈 일정 채우기</option>
+      </select>
+    </div>
+    <div class="field" style="flex:1; min-width:180px;">
+      <label for="near_schedule_id">기준 위치 (선택)</label>
+      <select id="near_schedule_id">
+        <option value="">자동 (첫 일정 기준)</option>
+      </select>
+    </div>
+    <div class="field" style="width:100px;">
+      <label for="rec_count">개수</label>
+      <input type="number" id="rec_count" value="5" min="1" max="10">
+    </div>
+    <div class="field" style="align-self:flex-end;">
+      <button type="submit">추천 받기</button>
+    </div>
+  </form>
+  <p class="muted">Claude API 연동 전이라 규칙 기반(카테고리·거리·관심사 가중치) 추천으로 동작합니다.</p>
+</div>
+
+<div id="rec-results" class="stack" style="margin-top:16px;"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">window.TRIP_ID = {{ trip_id }};</script>
+<script src="{{ url_for('static', filename='js/trip_recommend.js') }}"></script>
+{% endblock %}

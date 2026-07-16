@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}공유된 여행 — RouteMate{% endblock %}
+{% block content %}
+<div id="shared-content"><div class="spinner"></div></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">window.SHARE_TOKEN = {{ token | tojson }};</script>
+<script src="{{ url_for('static', filename='js/shared.js') }}"></script>
+{% endblock %}
