@@ -5,6 +5,12 @@
   <h1>내 여행</h1>
   <a class="btn" href="{{ url_for('views.trip_new') }}">+ 새 여행</a>
 </div>
+<div class="tabs" id="trip-tabs">
+  <a href="#" data-filter="ALL" class="active">전체</a>
+  <a href="#" data-filter="UPCOMING">예정</a>
+  <a href="#" data-filter="ONGOING">진행 중</a>
+  <a href="#" data-filter="DONE">완료</a>
+</div>
 <div id="trips-list" class="stack"><div class="spinner"></div></div>
 {% endblock %}
 {% block scripts %}

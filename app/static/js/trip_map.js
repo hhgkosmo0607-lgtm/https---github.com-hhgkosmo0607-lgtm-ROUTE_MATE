@@ -1,4 +1,10 @@
-const DAY_COLORS = ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2", "#db2777"];
+// 모노크롬 디자인: Day 구분은 회색 명도 + 선 패턴(실선/파선/점선) 조합으로
+const DAY_COLORS = ["#2b2b29", "#6f6f6a", "#45453f", "#8f8f89", "#55554f", "#a3a39d", "#3a3a38"];
+const DAY_DASHES = [null, "8 6", "2 6"];
+
+function dayDash(dayNo) {
+  return DAY_DASHES[(dayNo - 1) % DAY_DASHES.length];
+}
 
 let allSchedules = [];
 let map = null;
@@ -39,7 +45,7 @@ function buildMap(byDay) {
     const layer = L.layerGroup();
     const latlngs = items.map((s) => [s.place.lat, s.place.lng]);
 
-    L.polyline(latlngs, { color, weight: 3, opacity: 0.8 }).addTo(layer);
+    L.polyline(latlngs, { color, weight: 3, opacity: 0.85, dashArray: dayDash(Number(dayNo)) }).addTo(layer);
     items.forEach((s, idx) => {
       L.circleMarker([s.place.lat, s.place.lng], {
         radius: 9,

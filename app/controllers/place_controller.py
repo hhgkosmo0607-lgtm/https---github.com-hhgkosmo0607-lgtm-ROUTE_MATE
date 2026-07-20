@@ -16,3 +16,19 @@ def search_places():
     region = request.args.get("region")
     results = place_service.search_places(query, region)
     return success_response({"places": results})
+
+
+@place_bp.get("/nearby")
+@login_required
+@limiter.limit("30 per minute")
+def nearby_places():
+    try:
+        south = float(request.args["south"])
+        west = float(request.args["west"])
+        north = float(request.args["north"])
+        east = float(request.args["east"])
+    except (KeyError, ValueError):
+        return success_response({"places": [], "need_zoom": False})
+
+    places, need_zoom = place_service.nearby_places(south, west, north, east, query=request.args.get("q"))
+    return success_response({"places": places, "need_zoom": need_zoom})

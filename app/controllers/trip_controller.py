@@ -285,6 +285,17 @@ def generate_route(trip_id):
     )
 
 
+@trip_bp.get("/<int:trip_id>/gaps")
+@require_trip_member("VIEWER")
+def get_gaps(trip_id):
+    """빈 일정 자동 감지 (FR-303) — 60분 이상 공백 목록."""
+    try:
+        gaps = trip_service.detect_gaps(trip_id)
+    except ApiError as e:
+        return error_response(e.code, e.message, e.status)
+    return success_response({"gaps": gaps})
+
+
 @trip_bp.post("/<int:trip_id>/recommendations")
 @limiter.limit("3 per minute", key_func=lambda: str(current_user.get_id()))  # 8.4절: 사용자당 분당 3회
 @require_trip_member("EDITOR")

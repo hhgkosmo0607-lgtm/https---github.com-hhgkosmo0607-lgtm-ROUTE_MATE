@@ -31,6 +31,26 @@ def signup_page():
     return render_template("signup.html")
 
 
+@views_bp.get("/forgot-password")
+def forgot_password_page():
+    return render_template("forgot_password.html")
+
+
+@views_bp.get("/reset-password")
+def reset_password_page():
+    return render_template("reset_password.html", token=request.args.get("token", ""))
+
+
+@views_bp.get("/terms")
+def terms_page():
+    return render_template("terms.html")
+
+
+@views_bp.get("/privacy")
+def privacy_page():
+    return render_template("privacy.html")
+
+
 @views_bp.get("/trips")
 @login_required_page
 def trips_page():

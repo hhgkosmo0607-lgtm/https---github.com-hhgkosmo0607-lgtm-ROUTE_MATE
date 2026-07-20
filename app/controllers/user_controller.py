@@ -50,8 +50,36 @@ def update_me():
 @user_bp.delete("/me")
 @login_required
 def delete_me():
+    from ..models.trip import Trip
+    from ..models.trip_member import TripMember
+
+    # UI-10: 다른 멤버가 참여 중인 소유 여행이 있으면 소유권 이전/삭제를 먼저 요구
+    shared_owned = (
+        Trip.query.join(TripMember, TripMember.trip_id == Trip.trip_id)
+        .filter(
+            Trip.owner_id == current_user.user_id,
+            Trip.deleted_at.is_(None),
+            TripMember.user_id != current_user.user_id,
+        )
+        .with_entities(Trip.title)
+        .distinct()
+        .all()
+    )
+    if shared_owned:
+        titles = ", ".join(t.title for t in shared_owned[:3])
+        return error_response(
+            "CONFLICT",
+            f"동반자가 참여 중인 여행({titles})의 소유권을 이전하거나 여행을 삭제한 뒤 탈퇴할 수 있습니다.",
+            409,
+        )
+
+    # 혼자 소유한 여행은 함께 소프트 삭제
+    now = datetime.utcnow()
+    for trip in Trip.query.filter_by(owner_id=current_user.user_id, deleted_at=None).all():
+        trip.deleted_at = now
+
     log_event("USER_DELETE", user_id=current_user.user_id)
-    current_user.deleted_at = datetime.utcnow()
+    current_user.deleted_at = now
     db.session.commit()
     return success_response(None)
 

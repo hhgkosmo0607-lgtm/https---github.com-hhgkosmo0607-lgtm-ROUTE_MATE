@@ -60,7 +60,14 @@
       "Bash(.venv/bin/python -c \"from ortools.constraint_solver import pywrapcp, routing_enums_pb2; import ortools; print\\('ortools', ortools.__version__ if hasattr\\(ortools,'__version__'\\) else 'OK'\\)\")",
       "Bash(.venv/bin/python -m pytest tests/test_route_optimizer.py -q)",
       "Bash(.venv/bin/python -c \"import docx; print\\('python-docx OK'\\)\")",
-      "Bash(textutil -convert txt \"RouteMate_설계서 .docx\" -output /private/tmp/claude-501/-Users-oddnoise-01vscode-route-mate/cfdd6449-9325-4796-b725-43631624e489/scratchpad/검증.txt)"
+      "Bash(textutil -convert txt \"RouteMate_설계서 .docx\" -output /private/tmp/claude-501/-Users-oddnoise-01vscode-route-mate/cfdd6449-9325-4796-b725-43631624e489/scratchpad/검증.txt)",
+      "Bash(.venv/bin/python -m pytest tests/e2e -m e2e -q)",
+      "Bash(.venv/bin/locust --version)",
+      "Bash(.venv/bin/locust -f loadtest/locustfile.py --headless -u 30 -r 3 -t 60s --host http://127.0.0.1:5058 --only-summary)",
+      "Bash(.venv/bin/locust -f loadtest/locustfile.py --headless -u 100 -r 10 -t 60s --host http://127.0.0.1:5058 --only-summary)",
+      "Bash(grep -rn \"#[0-9a-fA-F]\\\\{3,6\\\\}\" app/static/js/ app/templates/)",
+      "WebFetch(domain:mapsplatform.google.com)",
+      "WebFetch(domain:developers.google.com)"
     ]
   }
 }

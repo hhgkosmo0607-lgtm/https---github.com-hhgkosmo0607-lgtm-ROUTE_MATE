@@ -348,6 +348,56 @@ def generate_route(trip_id, transport=None, day_start=None, day_end=None):
     return total_days, result
 
 
+GAP_MIN_MINUTES = 60  # FR-303: 이 이상 비면 추천 제안
+
+
+def detect_gaps(trip_id):
+    """일정 공백 감지 (FR-303). 각 Day에서 60분 이상 빈 구간을 찾는다.
+
+    타임라인은 순차 배치라 중간 공백은 잠금 일정 주변에서만 생기고,
+    대부분의 공백은 마지막 일정 이후 ~ 활동 종료 시각 사이다.
+    """
+    trip = get_trip_or_404(trip_id)
+    day_end_min = trip.day_end.hour * 60 + trip.day_end.minute
+
+    gaps = []
+    by_day = {}
+    for s in Schedule.query.filter_by(trip_id=trip_id).order_by(Schedule.day_no, Schedule.order_no).all():
+        if s.day_no == UNASSIGNED_DAY or s.start_time is None:
+            continue
+        by_day.setdefault(s.day_no, []).append(s)
+
+    for day_no, items in by_day.items():
+        # 잠금 일정 앞의 중간 공백
+        for prev, nxt in zip(items, items[1:]):
+            prev_end = prev.start_time.hour * 60 + prev.start_time.minute + prev.stay_min
+            nxt_start = nxt.start_time.hour * 60 + nxt.start_time.minute - (nxt.move_min or 0)
+            if nxt_start - prev_end >= GAP_MIN_MINUTES:
+                gaps.append(
+                    {
+                        "day_no": day_no,
+                        "from": minutes_to_time(prev_end).strftime("%H:%M"),
+                        "free_min": nxt_start - prev_end,
+                        "near_schedule_id": prev.schedule_id,
+                        "kind": "middle",
+                    }
+                )
+        # 마지막 일정 이후 ~ 활동 종료
+        last = items[-1]
+        last_end = last.start_time.hour * 60 + last.start_time.minute + last.stay_min
+        if day_end_min - last_end >= GAP_MIN_MINUTES:
+            gaps.append(
+                {
+                    "day_no": day_no,
+                    "from": minutes_to_time(last_end).strftime("%H:%M"),
+                    "free_min": day_end_min - last_end,
+                    "near_schedule_id": last.schedule_id,
+                    "kind": "tail",
+                }
+            )
+    return sorted(gaps, key=lambda g: (g["day_no"], g["from"]))
+
+
 def owner_transport(trip):
     profile = trip.owner.profile
     if profile is not None and profile.transport:

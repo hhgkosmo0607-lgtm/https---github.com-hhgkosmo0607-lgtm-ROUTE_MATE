@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}개인정보처리방침 — RouteMate{% endblock %}
+{% block content %}
+<div class="card" style="max-width:720px; margin:0 auto;">
+  <h1>개인정보처리방침</h1>
+  <div class="stack">
+    <p><strong>1. 수집 항목</strong><br>필수: 이메일, 비밀번호(bcrypt 해시로만 저장), 닉네임. 선택: 여행 프로필(여행 스타일, 음식 취향, 알레르기, 이동수단, 예산 수준, 관심사).</p>
+    <p><strong>2. 이용 목적</strong><br>회원 식별·인증, 맞춤 장소 추천 및 경로 계산, 여행 공유 기능 제공.</p>
+    <p><strong>3. 민감정보 보호</strong><br>알레르기 정보는 건강 관련 민감정보로 분류하여 AES-256-GCM으로 암호화 저장하며, 추천 필터링 외 용도로 사용하지 않고 로그에 기록하지 않습니다.</p>
+    <p><strong>4. 보유 및 파기</strong><br>회원 탈퇴 시 계정은 즉시 비활성화되며, 개인정보(이메일·닉네임)는 30일 유예 후 파기·익명화합니다. 공유된 여행의 일정 데이터는 "탈퇴한 사용자" 표기로 보존될 수 있습니다.</p>
+    <p><strong>5. 제3자 제공</strong><br>개인정보를 제3자에게 제공하지 않습니다. 장소 검색·경로 계산 시 좌표·검색어가 OpenStreetMap 공개 서버(Nominatim/Overpass/OSRM)로 전송되며, 계정 정보는 포함되지 않습니다.</p>
+    <p><strong>6. 이용자 권리</strong><br>마이페이지에서 언제든 프로필을 수정하거나 회원 탈퇴할 수 있습니다.</p>
+    <p class="muted">본 방침은 캡스톤 프로젝트용 예시이며, 상용 서비스 전 법률 검토가 필요합니다. 시행일: 2026-07-18</p>
+  </div>
+</div>
+{% endblock %}

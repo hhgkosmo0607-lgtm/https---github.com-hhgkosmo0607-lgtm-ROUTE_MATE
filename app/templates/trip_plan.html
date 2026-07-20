@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}여행 설계 — RouteMate{% endblock %}
+{% block container_class %}wide{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
+{% endblock %}
 {% block content %}
 <div id="trip-title" class="row between">
   <h1>여행 설계</h1>
@@ -17,7 +21,7 @@
   <span id="route-status" class="muted"></span>
 </div>
 
-<div class="grid-2">
+<div class="plan-grid">
   <div class="stack">
     <div class="card">
       <h2>장소 추가</h2>
@@ -59,14 +63,35 @@
       </details>
     </div>
 
+    <div class="card" id="explore-card" hidden>
+      <div class="row between">
+        <h2 id="explore-title">주변 탐색</h2>
+        <button type="button" class="link-btn" id="explore-close">닫기</button>
+      </div>
+      <div id="explore-filters" class="row" style="margin-bottom:10px;"></div>
+      <div id="explore-results" class="stack"></div>
+    </div>
+
     <div class="card">
       <h2>미배치 보관함</h2>
       <div id="unassigned-list" class="stack"></div>
     </div>
   </div>
 
+  <div class="plan-map-col" style="position:relative;">
+    <div id="plan-map"></div>
+    <div class="map-search">
+      <input type="text" id="map-search-input" placeholder="이 지역에서 검색 — 카페, 맛집, 스타벅스…" autocomplete="off">
+      <button type="button" id="map-search-btn" class="small">검색</button>
+      <button type="button" id="map-search-clear" class="small secondary" hidden>지우기</button>
+    </div>
+    <div id="poi-hint" class="poi-hint" hidden>지도를 확대하면 주변 음식점·카페·관광지가 표시됩니다</div>
+    <p class="muted" style="margin-top:6px;">지도 위 검색창으로 현재 화면에서 카테고리·상호를 찾거나, 확대해서 주변 장소 점을 클릭하세요. 데이터: OpenStreetMap</p>
+  </div>
+
   <div class="card">
     <h2>일정</h2>
+    <div id="gap-banner" class="stack" style="margin-bottom:10px;"></div>
     <div id="day-tabs" class="tabs"></div>
     <div id="day-content" class="stack"></div>
   </div>
@@ -74,5 +99,6 @@
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">window.TRIP_ID = {{ trip_id }};</script>
+<script nonce="{{ csp_nonce() }}" src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ url_for('static', filename='js/trip_plan.js') }}"></script>
 {% endblock %}

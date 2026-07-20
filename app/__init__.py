@@ -67,7 +67,17 @@ def create_app(config_class=Config):
 
     @app.get("/healthz")
     def healthz():
-        return {"status": "ok"}
+        # 14.4절: 웹·DB 점검 — 모니터링이 1분 간격으로 조회
+        try:
+            from sqlalchemy import text
+
+            db.session.execute(text("SELECT 1"))
+            db_status = "ok"
+            status_code = 200
+        except Exception:
+            db_status = "error"
+            status_code = 503
+        return {"status": "ok" if db_status == "ok" else "degraded", "db": db_status}, status_code
 
     @app.before_request
     def set_csp_nonce():

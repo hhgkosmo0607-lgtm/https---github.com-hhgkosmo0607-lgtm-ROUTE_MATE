@@ -7,6 +7,11 @@ async function loadScheduleOptions() {
     opt.textContent = `${escapeHtml(s.place.name)} (Day ${s.day_no || "미배치"})`;
     sel.appendChild(opt);
   });
+
+  // 빈 시간 배너에서 넘어온 경우: 유형·기준 위치 자동 선택 (FR-303)
+  const params = new URLSearchParams(location.search);
+  if (params.get("type")) document.getElementById("rec_type").value = params.get("type");
+  if (params.get("near")) sel.value = params.get("near");
 }
 
 function recCardHtml(rec) {
