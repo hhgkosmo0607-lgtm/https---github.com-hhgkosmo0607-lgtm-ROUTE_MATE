@@ -1,6 +1,7 @@
 from flask import current_app
 from sqlalchemy import func
 
+from ..adapters.gemini_adapter import GeminiAdapter
 from ..adapters.osm_adapter import OSMAdapter
 from ..engines import recommender
 from ..extensions import db
@@ -33,6 +34,39 @@ def _map_adapter():
     if not current_app.config.get("MAP_ADAPTER_ENABLED"):
         return None
     return OSMAdapter(contact_email=current_app.config.get("MAP_CONTACT_EMAIL"))
+
+
+def _ai_adapter():
+    api_key = current_app.config.get("GEMINI_API_KEY")
+    if not api_key:
+        return None
+    return GeminiAdapter(api_key, model=current_app.config.get("GEMINI_MODEL", "gemini-2.0-flash"))
+
+
+def _score(filtered, profile, anchor, transport, count):
+    """스코어링 (9.2.1절 ③): Gemini 우선 시도, 실패/미설정 시 규칙 기반 폴백(8.3절)."""
+    adapter = _ai_adapter()
+    if adapter is not None:
+        try:
+            raw = adapter.score_candidates(filtered, profile, anchor, transport, count)
+            by_id = {c.place_id: c for c in filtered}
+            scored = [
+                recommender.ScoredCandidate(
+                    place_id=item["place_id"],
+                    score=round(min(100.0, max(0.0, float(item["score"]))), 1),
+                    reason=str(item["reason"])[:300],
+                )
+                for item in raw
+                if isinstance(item, dict) and item.get("place_id") in by_id
+            ]
+            if scored:
+                scored.sort(key=lambda s: s.score, reverse=True)
+                return scored[:count]
+            current_app.logger.warning("Gemini returned no candidates matching the pool, falling back")
+        except Exception:
+            current_app.logger.warning("Gemini scoring failed, falling back to rule-based", exc_info=True)
+
+    return recommender.score_candidates(filtered, profile, anchor, transport, count)
 
 
 def _effective_profile(user):
@@ -147,8 +181,8 @@ def _gather_candidates(anchor, categories, excluded_place_ids):
 
 
 def create_recommendations(trip_id, user, rec_type, near_schedule_id=None, lat=None, lng=None, count=5):
-    """추천 생성 파이프라인 (FR-301~304, 9.2.1절). Claude API 미연동 상태이므로
-    8.3절 규칙 기반 폴백을 기본 스코어링으로 사용한다."""
+    """추천 생성 파이프라인 (FR-301~304, 9.2.1절). ③ 스코어링 단계는 GEMINI_API_KEY
+    설정 시 Gemini를 우선 시도하고, 미설정이거나 실패하면 8.3절 규칙 기반 폴백을 쓴다."""
     trip = trip_service.get_trip_or_404(trip_id)
     if rec_type not in REC_TYPE_CATEGORIES:
         raise ApiError("INVALID_INPUT", "type은 ATTRACTION, FOOD, CAFE, GAP_FILL 중 하나여야 합니다.", 400)
@@ -160,7 +194,8 @@ def create_recommendations(trip_id, user, rec_type, near_schedule_id=None, lat=N
 
     profile = _effective_profile(trip.owner)
     transport = trip_service.owner_transport(trip)
-    scored = recommender.recommend(candidates, profile, existing_place_ids, anchor, transport, count)
+    filtered = recommender.hard_filter(candidates, profile, existing_place_ids)
+    scored = _score(filtered, profile, anchor, transport, count)
 
     records = []
     for s in scored:

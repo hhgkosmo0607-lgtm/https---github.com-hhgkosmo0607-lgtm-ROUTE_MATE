@@ -1,3 +1,6 @@
+from app.services import recommend_service as svc
+
+
 def _signup_and_login(client, email, nickname="user"):
     client.post("/api/auth/signup", json={"email": email, "password": "abcd1234", "nickname": nickname})
     client.post("/api/auth/login", json={"email": email, "password": "abcd1234"})
@@ -80,6 +83,39 @@ def test_reject_then_accept_is_conflict(client):
 
     resp = client.post(f"/api/recommendations/{rec['rec_id']}/accept")
     assert resp.status_code == 409
+
+
+def test_recommendation_uses_gemini_score_and_reason_when_configured(client, app, monkeypatch):
+    app.config["GEMINI_API_KEY"] = "fake-key"
+
+    def fake_score_candidates(self, candidates, profile, anchor, transport, count=5):
+        return [{"place_id": candidates[0].place_id, "score": 91, "reason": "제미나이가 생성한 추천 이유"}]
+
+    monkeypatch.setattr(svc.GeminiAdapter, "score_candidates", fake_score_candidates)
+
+    trip_id = _trip_with_candidates(client, "gemini-ok@test.com")
+    resp = client.post(f"/api/trips/{trip_id}/recommendations", json={"type": "CAFE"})
+
+    assert resp.status_code == 201
+    rec = resp.get_json()["data"]["recommendations"][0]
+    assert rec["reason"] == "제미나이가 생성한 추천 이유"
+    assert rec["score"] == 0.91
+
+
+def test_recommendation_falls_back_to_rule_based_when_gemini_fails(client, app, monkeypatch):
+    app.config["GEMINI_API_KEY"] = "fake-key"
+
+    def boom(self, *args, **kwargs):
+        raise RuntimeError("quota exceeded")
+
+    monkeypatch.setattr(svc.GeminiAdapter, "score_candidates", boom)
+
+    trip_id = _trip_with_candidates(client, "gemini-fail@test.com")
+    resp = client.post(f"/api/trips/{trip_id}/recommendations", json={"type": "CAFE"})
+
+    assert resp.status_code == 201
+    rec = resp.get_json()["data"]["recommendations"][0]
+    assert "근접도를 반영한 기본 추천" in rec["reason"]
 
 
 def test_non_member_cannot_see_recommendations(client):

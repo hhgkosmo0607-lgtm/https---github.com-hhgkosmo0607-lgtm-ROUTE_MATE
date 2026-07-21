@@ -38,6 +38,10 @@ class Config:
     MAP_ADAPTER_ENABLED = os.environ.get("MAP_ADAPTER_ENABLED", "true").lower() == "true"
     MAP_CONTACT_EMAIL = os.environ.get("MAP_CONTACT_EMAIL")  # Nominatim/OSRM User-Agent에 포함 권장
 
+    # 9.2.1절 ③ 스코어링: Google AI Studio 무료 티어 Gemini API. 미설정 시 규칙 기반 폴백만 사용.
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+
 
 class TestConfig(Config):
     TESTING = True
@@ -45,3 +49,4 @@ class TestConfig(Config):
     WTF_CSRF_SECRET_KEY = "test-csrf-secret"
     RATELIMIT_ENABLED = True
     MAP_ADAPTER_ENABLED = False  # 테스트는 외부 네트워크 호출 없이 Haversine만 사용
+    GEMINI_API_KEY = None  # 테스트는 로컬 환경변수와 무관하게 규칙 기반 폴백만 사용
