@@ -148,3 +148,64 @@ def test_regenerating_route_replaces_previous_schedules(client):
     second_count = len(client.get(f"/api/trips/{trip_id}/schedules").get_json()["data"]["schedules"])
 
     assert first_count == second_count == 2
+
+
+def test_route_lines_returns_empty_when_adapter_disabled(client):
+    # TestConfig는 MAP_ADAPTER_ENABLED=false — 도로 경로 없이 빈 dict, 프론트는 직선 폴백 (8.3절)
+    _signup_and_login(client, "lines-off@test.com")
+    trip_id = _create_trip(client).get_json()["data"]["trip_id"]
+    for place in SEOUL_PLACES[:2]:
+        client.post(f"/api/trips/{trip_id}/places", json=place)
+    client.post(f"/api/trips/{trip_id}/route", json={"transport": "WALK"})
+
+    resp = client.get(f"/api/trips/{trip_id}/route-lines")
+    assert resp.status_code == 200
+    assert resp.get_json()["data"]["lines"] == {}
+
+
+def test_route_lines_returns_road_geometry_per_day(client, app, monkeypatch):
+    from app.services import trip_service as svc
+
+    app.config["MAP_ADAPTER_ENABLED"] = True
+    fake_line = [[37.5796, 126.9770], [37.5700, 126.9800], [37.5636, 126.9834]]
+
+    def fake_route_geometry(self, coords, mode):
+        assert len(coords) >= 2  # Day 안에 2곳 이상일 때만 호출돼야 한다
+        return fake_line
+
+    monkeypatch.setattr(svc.OSMAdapter, "route_geometry", fake_route_geometry)
+    # 경로 생성 단계에서 외부 거리행렬 호출이 일어나지 않도록 Haversine 폴백을 쓰게 한다
+    monkeypatch.setattr(svc.OSMAdapter, "distance_matrix", lambda self, c, m: (_ for _ in ()).throw(RuntimeError("no net")))
+
+    _signup_and_login(client, "lines-on@test.com")
+    trip_id = _create_trip(client, start_date="2026-08-01", end_date="2026-08-01").get_json()["data"]["trip_id"]
+    for place in SEOUL_PLACES[:2]:
+        client.post(f"/api/trips/{trip_id}/places", json=place)
+    client.post(f"/api/trips/{trip_id}/route", json={"transport": "WALK"})
+
+    resp = client.get(f"/api/trips/{trip_id}/route-lines")
+    assert resp.status_code == 200
+    lines = resp.get_json()["data"]["lines"]
+    assert lines["1"] == fake_line  # day_no가 문자열 키로 직렬화된다
+
+
+def test_route_lines_falls_back_silently_when_osrm_fails(client, app, monkeypatch):
+    from app.services import trip_service as svc
+
+    app.config["MAP_ADAPTER_ENABLED"] = True
+
+    def boom(self, coords, mode):
+        raise RuntimeError("OSRM down")
+
+    monkeypatch.setattr(svc.OSMAdapter, "route_geometry", boom)
+    monkeypatch.setattr(svc.OSMAdapter, "distance_matrix", lambda self, c, m: (_ for _ in ()).throw(RuntimeError("no net")))
+
+    _signup_and_login(client, "lines-fail@test.com")
+    trip_id = _create_trip(client, start_date="2026-08-01", end_date="2026-08-01").get_json()["data"]["trip_id"]
+    for place in SEOUL_PLACES[:2]:
+        client.post(f"/api/trips/{trip_id}/places", json=place)
+    client.post(f"/api/trips/{trip_id}/route", json={"transport": "WALK"})
+
+    resp = client.get(f"/api/trips/{trip_id}/route-lines")
+    assert resp.status_code == 200  # 실패해도 200 + 빈 결과 (프론트가 직선으로 그린다)
+    assert resp.get_json()["data"]["lines"] == {}

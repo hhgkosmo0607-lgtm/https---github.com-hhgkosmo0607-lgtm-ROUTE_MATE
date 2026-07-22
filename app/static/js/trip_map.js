@@ -1,5 +1,6 @@
 // 모노크롬 디자인: Day 구분은 회색 명도 + 선 패턴(실선/파선/점선) 조합으로
-const DAY_COLORS = ["#2b2b29", "#6f6f6a", "#45453f", "#8f8f89", "#55554f", "#a3a39d", "#3a3a38"];
+// Day별 식별 색 — trip_plan.js의 PLAN_DAY_COLORS와 동일 팔레트를 사용해 화면 간 색이 일치하도록 한다.
+const DAY_COLORS = ["#2563eb", "#dc2626", "#16a34a", "#ea580c", "#7c3aed", "#0891b2", "#ca8a04"];
 const DAY_DASHES = [null, "8 6", "2 6"];
 
 function dayDash(dayNo) {

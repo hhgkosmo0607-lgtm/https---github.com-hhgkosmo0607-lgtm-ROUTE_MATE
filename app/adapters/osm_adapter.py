@@ -23,9 +23,12 @@ _cache = TTLCache(maxsize=500)
 GEOCODE_TTL = 24 * 3600
 POI_TTL = 3600
 MATRIX_TTL = 7 * 24 * 3600
+ROUTE_TTL = 7 * 24 * 3600  # 같은 일정 순서의 경로선 재조회를 흡수 (거리행렬과 동일 주기)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 OSRM_URL = "https://router.project-osrm.org/table/v1/{profile}/{coords}"
+# 실제 도로를 따라가는 경로 지오메트리용 (거리행렬 /table과 달리 /route는 선형 경로를 준다)
+OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/{profile}/{coords}"
 # 공개 Overpass 서버는 개별 인스턴스가 수시로 504/슬롯초과를 내므로 미러를 순차 시도한다
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
@@ -199,3 +202,38 @@ class OSMAdapter:
         result = (durations_min, distances_km)
         _cache.set(cache_key, result, MATRIX_TTL)
         return result
+
+    def route_geometry(self, coords, mode):
+        """방문 순서대로 이어지는 실제 도로 경로의 좌표열을 반환한다 ([[lat, lng], ...]).
+
+        지도에 직선으로 잇는 대신 도로를 따라 그리기 위한 용도다(FR-502).
+        OSRM /route의 GeoJSON geometry를 [lat, lng] 순서로 변환해 돌려준다 —
+        Leaflet이 [lat, lng]를 쓰는데 GeoJSON은 [lng, lat] 순서라 뒤집어야 한다.
+        실패 시 예외를 던지며, 호출자는 직선 폴백을 쓴다(8.3절).
+        """
+        if len(coords) < 2:
+            return []
+
+        profile = PROFILE_MAP.get(mode, "driving")
+        coord_str = ";".join(f"{lng},{lat}" for lat, lng in coords)
+
+        cache_key = ("route", profile, tuple((round(la, 5), round(ln, 5)) for la, ln in coords))
+        cached = _cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        _throttle("osrm")
+        resp = requests.get(
+            OSRM_ROUTE_URL.format(profile=profile, coords=coord_str),
+            params={"overview": "full", "geometries": "geojson"},
+            headers={"User-Agent": self.user_agent},
+            timeout=self.timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("code") != "Ok" or not data.get("routes"):
+            raise RuntimeError(f"OSRM route error: {data.get('code')}")
+
+        line = [[lat, lng] for lng, lat in data["routes"][0]["geometry"]["coordinates"]]
+        _cache.set(cache_key, line, ROUTE_TTL)
+        return line

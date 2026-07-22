@@ -405,6 +405,42 @@ def owner_transport(trip):
     return DEFAULT_TRANSPORT
 
 
+def day_route_lines(trip_id):
+    """Day별 실제 도로 경로 좌표열 (FR-502 지도 표시용).
+
+    반환: {day_no: [[lat, lng], ...]} — OSRM /route의 도로 지오메트리.
+    어댑터가 꺼져 있거나 실패한 Day는 결과에서 빠지며, 프론트는 해당 Day를
+    기존처럼 장소 간 직선으로 그린다(8.3절 폴백).
+    """
+    trip = get_trip_or_404(trip_id)
+    adapter = get_map_adapter()
+    if adapter is None:
+        return {}
+
+    schedules = (
+        Schedule.query.filter(Schedule.trip_id == trip_id, Schedule.day_no != UNASSIGNED_DAY)
+        .order_by(Schedule.day_no, Schedule.order_no)
+        .all()
+    )
+    by_day = {}
+    for s in schedules:
+        by_day.setdefault(s.day_no, []).append((float(s.place.lat), float(s.place.lng)))
+
+    transport = owner_transport(trip)
+    lines = {}
+    for day_no, coords in by_day.items():
+        if len(coords) < 2:
+            continue
+        try:
+            line = adapter.route_geometry(coords, transport)
+        except Exception:
+            current_app.logger.warning("route geometry failed for day %s", day_no, exc_info=True)
+            continue
+        if line:
+            lines[day_no] = line
+    return lines
+
+
 def generate_share_link(trip_id):
     """읽기 전용 공유 링크 생성/재발급 (FR-604)."""
     trip = get_trip_or_404(trip_id)

@@ -296,6 +296,18 @@ def get_gaps(trip_id):
     return success_response({"gaps": gaps})
 
 
+@trip_bp.get("/<int:trip_id>/route-lines")
+@require_trip_member("VIEWER")
+def get_route_lines(trip_id):
+    """Day별 실제 도로 경로 좌표열 (지도에 직선 대신 도로를 따라 그리기 위함)."""
+    try:
+        lines = trip_service.day_route_lines(trip_id)
+    except ApiError as e:
+        return error_response(e.code, e.message, e.status)
+    # JSON 키는 문자열이어야 하므로 day_no를 문자열로 변환
+    return success_response({"lines": {str(k): v for k, v in lines.items()}})
+
+
 @trip_bp.post("/<int:trip_id>/recommendations")
 @limiter.limit("3 per minute", key_func=lambda: str(current_user.get_id()))  # 8.4절: 사용자당 분당 3회
 @require_trip_member("EDITOR")

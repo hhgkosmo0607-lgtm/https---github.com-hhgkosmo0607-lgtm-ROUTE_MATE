@@ -1,6 +1,7 @@
 let schedules = [];
 let tripInfo = null;
 let activeDay = null;
+let routeLines = {};  // {day_no: [[lat,lng],...]} 실제 도로 경로 — 없으면 직선 폴백
 
 async function loadTrip() {
   tripInfo = await api.get(`/api/trips/${TRIP_ID}`);
@@ -11,8 +12,19 @@ async function loadSchedules() {
   const data = await api.get(`/api/trips/${TRIP_ID}/schedules`);
   schedules = data.schedules;
   render();
-  renderMapSchedules();
+  renderMapSchedules();  // 먼저 직선으로 즉시 그리고
+  loadRouteLines();      // 도로 경로가 도착하면 다시 그린다 (OSRM 호출이 느려 UI를 막지 않도록)
   loadGaps();
+}
+
+async function loadRouteLines() {
+  try {
+    const data = await api.get(`/api/trips/${TRIP_ID}/route-lines`);
+    routeLines = data.lines || {};
+    renderMapSchedules();
+  } catch {
+    // 실패해도 직선 폴백이 이미 그려져 있으므로 조용히 넘어간다
+  }
 }
 
 async function loadGaps() {
@@ -36,7 +48,9 @@ async function loadGaps() {
 }
 
 // ───────── 작업용 지도 (UI-06 중앙 / FR-502 지도에서 장소 선택) ─────────
-const PLAN_DAY_COLORS = ["#2b2b29", "#6f6f6a", "#45453f", "#8f8f89", "#55554f", "#a3a39d"];
+// Day별 식별 색 — OSM 타일(밝은 베이지·연녹색) 위에서 서로 구분되도록 채도·명도를 맞춘 팔레트.
+// 예전엔 모노크롬 회색조라 Day 구분이 불가능했다.
+const PLAN_DAY_COLORS = ["#2563eb", "#dc2626", "#16a34a", "#ea580c", "#7c3aed", "#0891b2", "#ca8a04"];
 const CATEGORY_LABEL_KO = { ATTRACTION: "관광지", RESTAURANT: "음식점", CAFE: "카페", SHOPPING: "쇼핑", ETC: "기타" };
 const POI_MIN_ZOOM = 16;
 
@@ -71,12 +85,28 @@ function renderMapSchedules() {
     const color = PLAN_DAY_COLORS[(Number(dayNo) - 1) % PLAN_DAY_COLORS.length];
     const latlngs = items.map((s) => [s.place.lat, s.place.lng]);
     allPoints.push(...latlngs);
-    L.polyline(latlngs, { color, weight: 3, opacity: 0.7 }).addTo(scheduleLayer);
+    // 실제 도로 경로가 있으면 그것을 그리고, 없으면 장소 간 직선으로 폴백한다.
+    const roadLine = routeLines[dayNo];
+    L.polyline(roadLine || latlngs, {
+      color,
+      weight: roadLine ? 5 : 3,
+      opacity: roadLine ? 0.75 : 0.5,
+      dashArray: roadLine ? null : "6 5",  // 직선 폴백은 점선으로 표시해 실제 경로와 구분
+    }).addTo(scheduleLayer);
     items.forEach((s, idx) => {
       L.circleMarker([s.place.lat, s.place.lng], {
         radius: 10, color, fillColor: color, fillOpacity: 0.95, weight: 1,
       })
         .bindTooltip(`Day ${dayNo} · ${idx + 1}. ${s.place.name}`)
+        .bindPopup(
+          placeInfoHtml(
+            s.place,
+            `<div class="poi-popup-meta">Day ${dayNo} · ${idx + 1}번째 방문` +
+            (s.start_time ? ` · ${s.start_time} 시작` : "") +
+            (s.stay_min ? ` · ${s.stay_min}분 체류` : "") +
+            `</div>`
+          )
+        )
         .addTo(scheduleLayer);
     });
   }
@@ -125,9 +155,10 @@ async function refreshPois() {
       }).bindTooltip(poi.name);
       // 외부 데이터(상호명)는 속성에 넣지 않고 poiCache 인덱스로만 참조한다
       marker.bindPopup(
-        `<div class="poi-popup"><div class="poi-popup-name">${escapeHtml(poi.name)}</div>` +
-        `<div class="muted">${CATEGORY_LABEL_KO[poi.category] || poi.category}</div>` +
-        `<button type="button" class="small poi-add-btn" style="margin-top:6px;" data-poi-id="${idx}">일정에 추가</button></div>`
+        placeInfoHtml(
+          poi,
+          `<button type="button" class="small poi-add-btn" style="margin-top:6px;" data-poi-id="${idx}">일정에 추가</button>`
+        )
       );
       marker.addTo(poiLayer);
     });
@@ -157,13 +188,37 @@ document.getElementById("plan-map").addEventListener("click", async (e) => {
   }
 });
 
+const PREVIEW_COLOR = "#e11d48";  // 선택한 장소를 일정(Day) 마커와 확실히 구분하는 강조색
+
+/** 지도 마커 팝업에 공통으로 넣는 장소 정보 블록 (이름·분류·주소·좌표 + OSM 상세 링크). */
+function placeInfoHtml(place, actionHtml = "") {
+  const label = CATEGORY_LABEL_KO[place.category] || place.category || "장소";
+  const address = place.address
+    ? `<div class="poi-popup-addr">${escapeHtml(place.address)}</div>`
+    : "";
+  const coords = `${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`;
+  // OSM 지도 링크 — 영업시간·전화 등 상세는 OSM 원본에서 확인할 수 있게 한다
+  const osmLink = `https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lng}#map=18/${place.lat}/${place.lng}`;
+  return (
+    `<div class="poi-popup">` +
+    `<div class="poi-popup-name">${escapeHtml(place.name)}</div>` +
+    `<div class="muted">${label}</div>` +
+    address +
+    `<div class="poi-popup-coords">${coords}</div>` +
+    `<a class="poi-popup-link" href="${osmLink}" target="_blank" rel="noopener">OSM에서 자세히 보기</a>` +
+    actionHtml +
+    `</div>`
+  );
+}
+
 function showSearchPreview(place) {
   if (!planMap) return;
   if (searchPreviewMarker) searchPreviewMarker.remove();
   searchPreviewMarker = L.circleMarker([place.lat, place.lng], {
-    radius: 11, color: "#2b2b29", fillColor: "#2b2b29", fillOpacity: 0.35, weight: 2, dashArray: "3 3",
+    radius: 11, color: PREVIEW_COLOR, fillColor: PREVIEW_COLOR, fillOpacity: 0.45, weight: 3,
   })
     .bindTooltip(place.name, { permanent: true, direction: "top" })
+    .bindPopup(placeInfoHtml(place))
     .addTo(planMap);
   planMap.setView([place.lat, place.lng], Math.max(planMap.getZoom(), 16));
 }
@@ -473,8 +528,8 @@ document.getElementById("explore-results").addEventListener("click", async (e) =
     }
     return;
   }
-  // 행 클릭 → 지도에서 해당 장소로 이동
-  if (planMap) planMap.setView([poi.lat, poi.lng], 18);
+  // 행 클릭 → 지도 이동 + 강조 마커 표시 (이동만 하면 어느 점인지 알 수 없다)
+  showSearchPreview(poi);
 });
 
 document.getElementById("explore-close").addEventListener("click", () => {
@@ -526,9 +581,10 @@ function renderSearchMarkers(places) {
     })
       .bindTooltip(poi.name)
       .bindPopup(
-        `<div class="poi-popup"><div class="poi-popup-name">${escapeHtml(poi.name)}</div>` +
-        `<div class="muted">${EXPLORE_LABELS[poi.category] || poi.category}</div>` +
-        `<button type="button" class="small search-add-btn" style="margin-top:6px;" data-idx="${idx}">일정에 추가</button></div>`
+        placeInfoHtml(
+          poi,
+          `<button type="button" class="small search-add-btn" style="margin-top:6px;" data-idx="${idx}">일정에 추가</button>`
+        )
       )
       .addTo(mapSearchLayer);
   });
