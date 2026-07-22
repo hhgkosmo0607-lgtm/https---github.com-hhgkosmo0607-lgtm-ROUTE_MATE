@@ -47,7 +47,7 @@ def test_score_candidates_parses_valid_response(monkeypatch):
 
     def fake_post(url, params=None, json=None, timeout=None):
         assert params == {"key": "fake-key"}
-        assert "gemini-2.0-flash" in url
+        assert "gemini-flash-latest" in url
         return _FakeResponse(_gemini_payload(items))
 
     monkeypatch.setattr(ga.requests, "post", fake_post)

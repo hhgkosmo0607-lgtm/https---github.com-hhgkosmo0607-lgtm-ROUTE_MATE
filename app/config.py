@@ -40,7 +40,7 @@ class Config:
 
     # 9.2.1절 ③ 스코어링: Google AI Studio 무료 티어 Gemini API. 미설정 시 규칙 기반 폴백만 사용.
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
 
 
 class TestConfig(Config):
